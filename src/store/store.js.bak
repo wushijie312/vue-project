@@ -1,0 +1,177 @@
+import Vue from 'vue'
+import Vuex from 'vuex'
+import userApi from './api/user';
+import cartApi from './api/cart';
+import testApi from './api/test';
+
+import {
+    LOGIN_SUCCESS,
+    LOGIN_FAIL,
+    FETCH_CART_LIST_SUCCESS,
+    FETCH_CART_LIST_FAIL,
+    FETCH_CART_DELETE_SUCCESS,
+    FETCH_CART_DELETE_FAIL,
+    FETCH_TEST_500_SUCCESS,
+    FETCH_TEST_500_FAIL,
+    FETCH_TEST_401_SUCCESS,
+    FETCH_TEST_401_FAIL,
+    FETCH_TEST_203_SUCCESS,
+    FETCH_TEST_203_FAIL,
+    FETCH_USER_LOGOUT_SUCCESS,
+    FETCH_USER_LOGOUT_FAIL,
+    FETCH_USER_INFO_SUCCESS,
+    FETCH_USER_INFO_FAIL,
+
+} from './mutation-types';
+
+Vue.use(Vuex);
+
+const store = new Vuex.Store({
+    state: {
+        count: 0,
+        userInfo: null,
+        cartList: []
+    },
+
+    mutations: {
+        increment(state) {
+            state.count++;
+        },
+        reduction(state) {
+            state.count--;
+        },
+        [LOGIN_SUCCESS](state,userInfo) {
+            state.userInfo = userInfo;
+        },
+        [LOGIN_FAIL](state, userInfo) {
+            state.userInfo = userInfo;
+        },
+        [FETCH_USER_INFO_SUCCESS](state, userInfo) {
+            state.userInfo = userInfo;
+        },
+        [FETCH_USER_INFO_FAIL](state, msg) {
+            alert(msg);
+        },
+        [FETCH_CART_LIST_SUCCESS](state, cartList) {
+            state.cartList = cartList;
+        },
+        [FETCH_CART_DELETE_SUCCESS]() {
+        },
+        [FETCH_CART_DELETE_FAIL]() {
+        },
+        [FETCH_TEST_500_SUCCESS]() {
+        },
+        [FETCH_TEST_500_FAIL]() {
+        },
+        [FETCH_TEST_401_SUCCESS]() {
+        },
+        [FETCH_TEST_401_FAIL]() {
+        },
+        [FETCH_TEST_203_SUCCESS]() {
+        },
+        [FETCH_TEST_203_FAIL](state, msg) {
+            alert(msg);
+        },
+        [FETCH_USER_LOGOUT_SUCCESS](state) {
+            state.userInfo = null;
+        },
+        [FETCH_USER_LOGOUT_FAIL](state, msg) {
+            alert(msg);
+        }
+    },
+
+    actions: {
+        //登录事件
+        async login({ commit }, loginInfo) {
+            let { username, password, $router } = loginInfo;
+            let result = await userApi.login(username, password);
+            if (result.code === 0) {
+               //登录成功
+               let userInfoResult = await userApi.getUserInfo();
+               commit(LOGIN_SUCCESS, userInfoResult.data);
+               $router.push('goods');
+            } else {
+                //登录失败
+                commit(LOGIN_FAIL, result.msg);
+            }
+
+        },
+
+        //获取购物车列表
+        async getUserInfo({ commit }) {
+            let result = await userApi.getUserInfo();
+            if (result.code === 0) {
+                commit(FETCH_USER_INFO_SUCCESS, result.data);
+            } else {
+                commit(FETCH_USER_INFO_FAIL, result.data);
+            }
+        },
+
+        //注销登录事件
+        async logout({ commit }, router) {
+            let loginResult = await userApi.logout();
+            //注销登录成功
+            router.push('login');
+            commit(FETCH_USER_LOGOUT_SUCCESS, loginResult);
+        },
+        //获取购物车列表
+        async getCartlist({ commit }) {
+            let result = await cartApi.list();
+            if (result.code === 0) {
+                commit(FETCH_CART_LIST_SUCCESS, result.data);
+            } else {
+                //登录失败
+                commit(FETCH_CART_LIST_FAIL, result);
+            }
+        },
+        //删除购物车条目
+        async deleteCartItem({ dispatch, commit }, id) {
+            let result = await cartApi.delete(id);
+            if (result.code === 0) {
+                await dispatch('getCartlist'); //重新获取购物车列表
+                commit(FETCH_CART_DELETE_SUCCESS, result.msg);
+            } else {
+                //登录失败
+                commit(FETCH_CART_DELETE_FAIL, result);
+            }
+        },
+        //测试 http 500
+        async get500Response({ commit }) {
+            let result = await testApi._500();
+            //下面代码不会执行,处理逻辑见httpcli的响应拦截器 vue-helloworld\src\util\request.js  line:16
+            if (result.code === 0) {
+                commit(FETCH_TEST_500_SUCCESS, result.msg);
+            } else {
+                //登录失败
+                commit(FETCH_TEST_500_FAIL, result.msg);
+            }
+        },
+        //测试 http 401
+        async get401Response({ commit }) {
+            let result = await testApi._401();
+            //下面代码不会执行,处理逻辑见httpcli的响应拦截器 vue-helloworld\src\util\request.js  line:16
+            if (result.code === 0) {
+                commit(FETCH_TEST_401_SUCCESS, result.msg);
+            } else {
+                //登录失败
+                commit(FETCH_TEST_401_FAIL, result.msg);
+            }
+        },
+        //测试 http 203
+        async get203Response({ commit }) {
+            let result = await testApi._203();
+            if (result.code === 0) {
+                commit(FETCH_TEST_203_SUCCESS, result.msg);
+            } else {
+                //登录失败
+                commit(FETCH_TEST_203_FAIL, result.msg);
+            }
+        },
+        //三秒异步操作,然后执行--
+        reductionAsync({ commit }) {
+            setTimeout(() => commit('reduction'), 3000);
+        }
+    }
+})
+
+export default store;
